@@ -32,6 +32,8 @@ func main() {
 		WriteTimeout: time.Second,
 	}
 	mux.Handle("/", http.HandlerFunc(defaultHandler))
+	mux.Handle("/time", http.HandlerFunc(timeHandler))
+
 	fmt.Println("Ready to serve at", PORT)
 	err := s.ListenAndServe()
 	if err != nil {
@@ -44,5 +46,12 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving:", r.URL.Path, "from", r.Host)
 	w.WriteHeader(http.StatusNotFound)
 	Body := "Thanks for visiting!\n"
+	fmt.Fprintf(w, "%s", Body)
+}
+
+func timeHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Serving: ", r.URL.Path, "from", r.Host)
+	t := time.Now().Format(time.RFC1123)
+	Body := "The current time is: " + t + "\n"
 	fmt.Fprintf(w, "%s", Body)
 }
