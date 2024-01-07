@@ -1,19 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-// type User struct {
-// 	Username string `json:"user"`
-// 	Password string `json:"password"`
-// }
+type User struct {
+	Username string `json:"user"`
+	Password string `json:"password"`
+}
 
-// var User user
+var user User
 var PORT = ":1234"
 var DATA = make(map[string]string)
 
@@ -33,6 +35,7 @@ func main() {
 	}
 	mux.Handle("/", http.HandlerFunc(defaultHandler))
 	mux.Handle("/time", http.HandlerFunc(timeHandler))
+	mux.Handle("/users", http.HandlerFunc(addHandler))
 
 	fmt.Println("Ready to serve at", PORT)
 	err := s.ListenAndServe()
@@ -54,4 +57,32 @@ func timeHandler(w http.ResponseWriter, r *http.Request) {
 	t := time.Now().Format(time.RFC1123)
 	Body := "The current time is: " + t + "\n"
 	fmt.Fprintf(w, "%s", Body)
+}
+
+func addHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Serving: ", r.URL.Path, "from", r.Host, r.Method)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Error: ", http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "%s\n", "Method not allowed!!!")
+		return
+	}
+	d, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error:", http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(d, &user)
+	if err != nil {
+		log.Println("Error on unmarshalling:", err)
+		http.Error(w, "Error:", http.StatusBadRequest)
+		return
+	}
+	if user.Username != "" {
+		DATA[user.Username] = user.Password
+		log.Println(DATA)
+		w.WriteHeader(http.StatusOK)
+	} else {
+		http.Error(w, "Error:", http.StatusBadRequest)
+		return
+	}
 }
